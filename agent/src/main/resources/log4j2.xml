@@ -8,24 +8,31 @@
 
         <Kafka name="KafkaAppender" topic="log-events">
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
-            <Property name="bootstrap.servers">localhost:29092</Property>
-            <Property name="acks">1</Property>
+            <Property name="bootstrap.servers">localhost:29092,localhost:39092,localhost:49092</Property>
+
+            <Property name="acks">all</Property>
+            <Property name="retries">10</Property>
+            <Property name="retry.backoff.ms">200</Property>
+            <Property name="delivery.timeout.ms">60000</Property>
+            <Property name="request.timeout.ms">30000</Property>
+
+            <!-- 16KB batch size and wait 500ms to accumulate message            -->
+            <Property name="batch.size">16384</Property>
+            <Property name="linger.ms">500</Property>
+
+            <!-- 32MB buffer memory            -->
+            <Property name="buffer.memory">33554432</Property>
+
             <Property name="key.serializer">org.apache.kafka.common.serialization.StringSerializer</Property>
             <Property name="value.serializer">org.apache.kafka.common.serialization.ByteArraySerializer</Property>
+
+            <!-- Compression for reduce network usage            -->
+            <Property name="compression.type">gzip</Property>
         </Kafka>
 
         <Async name="Async">
             <AppenderRef ref="KafkaAppender"/>
         </Async>
-
-<!--        <RollingFile name="FileAppender" fileName="agent/logs/app.log"-->
-<!--                     filePattern="logs/app-%d{yyyy-MM-dd}-%i.log.gz">-->
-<!--            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>-->
-<!--            <Policies>-->
-<!--                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>-->
-<!--                <SizeBasedTriggeringPolicy size="10MB"/>-->
-<!--            </Policies>-->
-<!--        </RollingFile>-->
     </Appenders>
 
     <Loggers>
@@ -33,7 +40,6 @@
 
         <Root level="INFO">
             <AppenderRef ref="ConsoleAppender"/>
-<!--            <AppenderRef ref="FileAppender"/>-->
             <AppenderRef ref="KafkaAppender"/>
         </Root>
     </Loggers>
