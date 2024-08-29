@@ -1,7 +1,20 @@
 version: '3.8'
+
+x-experiment-common: &experiment-common
+  networks:
+    - kafka-net
+  deploy:
+    resources:
+      limits:
+        cpus: '0.50'
+        memory: 512M
+
+x-kafka-common: &kafka-common
+  image: apache/kafka:3.8.0
+
 services:
   controller-1:
-    image: apache/kafka:3.8.0
+    <<: [*kafka-common ,*experiment-common]
     container_name: controller-1
     environment:
       KAFKA_NODE_ID: 1
@@ -11,10 +24,19 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OPTS: "-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar=9401:/opt/kafka/config/prometheus.yml"
+    ports:
+      - "9401:9401"
+    volumes:
+      - kafka-controller-1-data:/var/lib/kafka/data
+      - ./jmx_prometheus_javaagent-1.0.1.jar:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar
+      - ./kafka.yml:/opt/kafka/config/prometheus.yml
 
   controller-2:
-    image: apache/kafka:3.8.0
+    <<: [*kafka-common ,*experiment-common]
     container_name: controller-2
+    ports:
+      - "9402:9402"
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: controller
@@ -23,10 +45,17 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OPTS: "-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar=9402:/opt/kafka/config/prometheus.yml"
+    volumes:
+      - kafka-controller-2-data:/var/lib/kafka/data
+      - ./jmx_prometheus_javaagent-1.0.1.jar:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar
+      - ./kafka.yml:/opt/kafka/config/prometheus.yml
 
   controller-3:
-    image: apache/kafka:3.8.0
+    <<: [*kafka-common ,*experiment-common]
     container_name: controller-3
+    ports:
+      - "9403:9403"
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_PROCESS_ROLES: controller
@@ -35,12 +64,18 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OPTS: "-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar=9403:/opt/kafka/config/prometheus.yml"
+    volumes:
+      - kafka-controller-3-data:/var/lib/kafka/data
+      - ./jmx_prometheus_javaagent-1.0.1.jar:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar
+      - ./kafka.yml:/opt/kafka/config/prometheus.yml
 
   broker-1:
-    image: apache/kafka:3.8.0
+    <<: [*kafka-common ,*experiment-common]
     container_name: broker-1
     ports:
-      - 29092:9092
+      - "29092:9092"
+      - "9404:9404"
     environment:
       KAFKA_NODE_ID: 4
       KAFKA_PROCESS_ROLES: broker
@@ -51,16 +86,22 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OPTS: "-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar=9404:/opt/kafka/config/prometheus.yml"
+    volumes:
+      - kafka-broker-1-data:/var/lib/kafka/data
+      - ./jmx_prometheus_javaagent-1.0.1.jar:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar
+      - ./kafka.yml:/opt/kafka/config/prometheus.yml
     depends_on:
       - controller-1
       - controller-2
       - controller-3
 
   broker-2:
-    image: apache/kafka:3.8.0
+    <<: [*kafka-common ,*experiment-common]
     container_name: broker-2
     ports:
-      - 39092:9092
+      - "39092:9092"
+      - "9405:9405"
     environment:
       KAFKA_NODE_ID: 5
       KAFKA_PROCESS_ROLES: broker
@@ -71,16 +112,22 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OPTS: "-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar=9405:/opt/kafka/config/prometheus.yml"
+    volumes:
+      - kafka-broker-2-data:/var/lib/kafka/data
+      - ./jmx_prometheus_javaagent-1.0.1.jar:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar
+      - ./kafka.yml:/opt/kafka/config/prometheus.yml
     depends_on:
       - controller-1
       - controller-2
       - controller-3
 
   broker-3:
-    image: apache/kafka:3.8.0
+    <<: [*kafka-common ,*experiment-common]
     container_name: broker-3
     ports:
-      - 49092:9092
+      - "49092:9092"
+      - "9406:9406"
     environment:
       KAFKA_NODE_ID: 6
       KAFKA_PROCESS_ROLES: broker
@@ -91,7 +138,57 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OPTS: "-javaagent:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar=9406:/opt/kafka/config/prometheus.yml"
+    volumes:
+      - kafka-broker-3-data:/var/lib/kafka/data
+      - ./jmx_prometheus_javaagent-1.0.1.jar:/opt/kafka/libs/jmx_prometheus_javaagent-1.0.1.jar
+      - ./kafka.yml:/opt/kafka/config/prometheus.yml
     depends_on:
       - controller-1
       - controller-2
       - controller-3
+
+  prometheus:
+    <<: *experiment-common
+    image: prom/prometheus:v2.53.2
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    <<: *experiment-common
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+volumes:
+  kafka-controller-1-data:
+    driver: local
+  kafka-controller-2-data:
+    driver: local
+  kafka-controller-3-data:
+    driver: local
+  kafka-broker-1-data:
+    driver: local
+  kafka-broker-2-data:
+    driver: local
+  kafka-broker-3-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  kafka-net:
