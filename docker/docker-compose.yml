@@ -168,9 +168,35 @@ services:
       - grafana-data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     depends_on:
       - prometheus
+
+  logstash:
+    <<: *experiment-common
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: logstash
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+      - "9600:9600"
+    volumes:
+      - ./logstash/config:/usr/share/logstash/config
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+
+  elasticsearch:
+    <<: *experiment-common
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
 
 volumes:
   kafka-controller-1-data:
@@ -189,6 +215,9 @@ volumes:
     driver: local
   grafana-data:
     driver: local
+  elasticsearch-data:
+    driver: local
 
 networks:
   kafka-net:
+    driver: bridge
