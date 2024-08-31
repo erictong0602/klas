@@ -12,6 +12,6 @@ public class KafkaLogConsumer {
 
     @KafkaListener(topics = "log-events")
     public void listen(String message) {
-        LOGGER.info("Received and Sanitized: {}", ESAPILoggingUtil.sanitizeForLogging(message));
+        System.out.println(message);
     }
 }
