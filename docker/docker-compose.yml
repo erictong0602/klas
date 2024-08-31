@@ -1,8 +1,10 @@
 version: '3.8'
 
-x-experiment-common: &experiment-common
+x-experiment-network: &experiment-network
   networks:
     - kafka-net
+
+x-experiment-resource: &experiment-resource
   deploy:
     resources:
       limits:
@@ -14,7 +16,7 @@ x-kafka-common: &kafka-common
 
 services:
   controller-1:
-    <<: [*kafka-common ,*experiment-common]
+    <<: [*kafka-common ,*experiment-resource, *experiment-network]
     container_name: controller-1
     environment:
       KAFKA_NODE_ID: 1
@@ -33,7 +35,7 @@ services:
       - ./kafka.yml:/opt/kafka/config/prometheus.yml
 
   controller-2:
-    <<: [*kafka-common ,*experiment-common]
+    <<: [*kafka-common ,*experiment-resource, *experiment-network]
     container_name: controller-2
     ports:
       - "9402:9402"
@@ -52,7 +54,7 @@ services:
       - ./kafka.yml:/opt/kafka/config/prometheus.yml
 
   controller-3:
-    <<: [*kafka-common ,*experiment-common]
+    <<: [*kafka-common ,*experiment-resource, *experiment-network]
     container_name: controller-3
     ports:
       - "9403:9403"
@@ -71,7 +73,7 @@ services:
       - ./kafka.yml:/opt/kafka/config/prometheus.yml
 
   broker-1:
-    <<: [*kafka-common ,*experiment-common]
+    <<: [*kafka-common ,*experiment-resource, *experiment-network]
     container_name: broker-1
     ports:
       - "29092:9092"
@@ -97,7 +99,7 @@ services:
       - controller-3
 
   broker-2:
-    <<: [*kafka-common ,*experiment-common]
+    <<: [*kafka-common ,*experiment-resource, *experiment-network]
     container_name: broker-2
     ports:
       - "39092:9092"
@@ -123,7 +125,7 @@ services:
       - controller-3
 
   broker-3:
-    <<: [*kafka-common ,*experiment-common]
+    <<: [*kafka-common ,*experiment-resource, *experiment-network]
     container_name: broker-3
     ports:
       - "49092:9092"
@@ -149,7 +151,7 @@ services:
       - controller-3
 
   prometheus:
-    <<: *experiment-common
+    <<: [*experiment-resource, *experiment-network]
     image: prom/prometheus:v2.53.2
     container_name: prometheus
     ports:
@@ -159,7 +161,7 @@ services:
       - prometheus-data:/prometheus
 
   grafana:
-    <<: *experiment-common
+    <<: [*experiment-resource, *experiment-network]
     image: grafana/grafana:11.2.0
     container_name: grafana
     ports:
@@ -173,8 +175,8 @@ services:
       - prometheus
 
   logstash:
-    <<: *experiment-common
-    image: docker.elastic.co/logstash/logstash:8.15.0
+    <<: [*experiment-resource, *experiment-network]
+    image: docker.elastic.co/logstash/logstash:${ETL_VERSION}
     container_name: logstash
     ports:
       - "5044:5044"
@@ -185,8 +187,8 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
 
   elasticsearch:
-    <<: *experiment-common
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    <<: [*experiment-resource, *experiment-network]
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ETL_VERSION}
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
@@ -198,6 +200,16 @@ services:
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
 
+  kibana:
+    <<: [*experiment-network]
+    image: docker.elastic.co/kibana/kibana:${ETL_VERSION}
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    volumes:
+      - kibana-data:/usr/share/kibana/data
+    networks:
+      - kafka-net
 volumes:
   kafka-controller-1-data:
     driver: local
@@ -216,6 +228,8 @@ volumes:
   grafana-data:
     driver: local
   elasticsearch-data:
+    driver: local
+  kibana-data:
     driver: local
 
 networks:
